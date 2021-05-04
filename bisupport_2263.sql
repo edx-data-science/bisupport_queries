@@ -1,0 +1,3 @@
+--We ran into an issue with the etext fee for one of the courses for IU. In the latest Q3 Revenue Share report and now looking at Q2, it looks like there were larger etext fees than were negotiated before my time. 
+--According to the contract I have attached here, the fee should be $4 per learner. It looks to be more for both courses in this report and Q2. 
+--The courses are: ('course-v1:IUx+IUMX-620+3T2020','course-v1:IUx+IUMX-621+1T2021')
