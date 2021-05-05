@@ -63,7 +63,7 @@ with awt as (select * from /*{{cref('*/finrep_base_affiliate_window_transactions
                           , to_date(tpia.transaction_date)                                          as transaction_date
                           , cast(
             (tpia.commission_amount_per_item + tpia.service_fee_amount_per_item) as decimal(12, 2)) as total_affiliate_fee
-                          , iff(tpia.affiliate_site is null, 'maybe awin', tpia.affiliate_site)     as affiliate_site
+                          , iff(nvl(tpia.affiliate_site,'') ='', 'maybe awin', tpia.affiliate_site) as affiliate_site
                      from intermediate_transaction_orderline_enrollment itoe
                               join temp_per_item_amounts tpia
                                    on tpia.uniqueid = itoe.uniqueid
