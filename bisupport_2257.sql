@@ -208,3 +208,147 @@ where
     first_verified_date is not null
 group by
     1
+
+-------------------------------------------------------------------------
+
+-- Crude About page/Enrollment exploration
+
+with course_about_page_views as (
+    select
+        timestamp,
+        user_id,
+        parse_url(url_non_null):path clean_url_path
+    from
+        prod.event_sources._intermediate_event_activity
+    where
+        activity_day >= to_date('2020-12-31')
+        and activity_day < to_date('2021-02-01')
+        and is_desktop_os
+        and (
+            (REGEXP_LIKE(url_non_null, '.*www.edx.org/course/.+') and not REGEXP_LIKE(url_non_null, '.*www.edx.org/course/subject.+'))
+        )
+),
+enrollments as (
+    select
+        timestamp,
+        user_id,
+        courserun_key,
+        lag(timestamp) over (partition by user_id order by timestamp) previous_enrollment_timestamp
+    from
+        prod.event_sources._intermediate_event_activity
+    where
+        activity_day >= to_date('2020-12-31')
+        and activity_day < to_date('2021-02-01')
+        and is_desktop_os
+        and is_web_enrollment
+), enrollment_about_views as (
+    select
+        enrollments.timestamp,
+        enrollments.user_id,
+        enrollments.courserun_key,
+        count(distinct course_about_page_views.clean_url_path) distinct_about_page_views
+    from
+        enrollments
+        left join course_about_page_views
+            on enrollments.user_id = course_about_page_views.user_id
+            and course_about_page_views.timestamp < enrollments.timestamp
+            and course_about_page_views.timestamp > greatest(coalesce(enrollments.previous_enrollment_timestamp, dateadd('hour', -24, enrollments.timestamp)), dateadd('hour', -24, enrollments.timestamp))
+    group by
+        enrollments.timestamp,
+        enrollments.user_id,
+        enrollments.courserun_key
+)
+select
+    distinct_about_page_views,
+    count(*) view_count,
+    round(view_count / sum(view_count) over (), 4) 
+from
+    enrollment_about_views
+group by
+    distinct_about_page_views
+order by
+    2 desc
+
+
+--------- Let's find examples of 0 view enrolls
+
+with course_about_page_views as (
+    select
+        timestamp,
+        user_id,
+        parse_url(url_non_null):path clean_url_path
+    from
+        prod.event_sources._intermediate_event_activity
+    where
+        activity_day >= to_date('2020-12-31')
+        and activity_day < to_date('2021-02-01')
+        and is_desktop_os
+        and (
+            (REGEXP_LIKE(url_non_null, '.*www.edx.org/course/.+') and not REGEXP_LIKE(url_non_null, '.*www.edx.org/course/subject.+'))
+        )
+),
+enrollments as (
+    select
+        timestamp,
+        user_id,
+        courserun_key,
+        lag(timestamp) over (partition by user_id order by timestamp) previous_enrollment_timestamp
+    from
+        prod.event_sources._intermediate_event_activity
+    where
+        activity_day >= to_date('2020-12-31')
+        and activity_day < to_date('2021-02-01')
+        and is_desktop_os
+        and is_web_enrollment
+), enrollment_about_views as (
+    select
+        enrollments.timestamp,
+        enrollments.user_id,
+        enrollments.courserun_key,
+        count(distinct course_about_page_views.clean_url_path) distinct_about_page_views
+    from
+        enrollments
+        left join course_about_page_views
+            on enrollments.user_id = course_about_page_views.user_id
+            and course_about_page_views.timestamp < enrollments.timestamp
+            and course_about_page_views.timestamp > greatest(coalesce(enrollments.previous_enrollment_timestamp, dateadd('hour', -24, enrollments.timestamp)), dateadd('hour', -24, enrollments.timestamp))
+    group by
+        enrollments.timestamp,
+        enrollments.user_id,
+        enrollments.courserun_key
+)
+select
+    *
+from
+    enrollment_about_views
+where
+    distinct_about_page_views = 0
+limit 100;
+
+-- New Examples of 0: 
+-- 39011354, course-v1:HarvardX+MCB80.1x+2T2020, 2021-01-12 13:50:23.
+-- 39148212, course-v1:GTx+CS1301xI+1T2021, 2021-01-18 20:00:03
+-- 39382069, course-v1:IIMBx+FC250x+2T2020, 2021-01-26 21:19:46
+
+select
+    *
+from
+    prod.event_sources._intermediate_event_activity
+where
+    user_id = 39011354
+    and activity_day = to_date('2021-01-12')
+order by timestamp
+
+
+select 
+    * 
+from 
+    prod.segment_events.segment_events_with_metadata 
+where
+    user_id = 39011354
+    and to_date(timestamp) = to_date('2021-01-12')
+order by
+    timestamp
+
+
+
