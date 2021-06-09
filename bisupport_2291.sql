@@ -1,27 +1,9 @@
-select distinct au.email
-    , au.first_name
-    , au.last_name
-    , enroll.user_id
-    , enroll.current_mode
-    , enroll.is_active
-    , enroll.first_verified_date
-    , enroll.first_unenrollment_date
-    , enroll.courserun_key
-    , pcr.program_title
-    , iff(fb.is_redeemed is null, false, true) is_redeemed
-from prod.core.program_courserun pcr
-join prod.core.dim_enrollments enroll
-     on pcr.courserun_id = enroll.courserun_id
-left join prod.core.fact_booking fb
-     on fb.enrollment_id = enroll.enrollment_id
-join prod.lms_pii.auth_user as au
-     on au.id = enroll.user_id
-where lower(pcr.program_title) like 'international law'
-    and pcr.program_type = 'MicroMasters'
-    and pcr.partner_key = 'LouvainX'
-    and not enroll.is_privileged_or_internal_user
-    and enroll.current_mode = 'verified'
-    and enroll.is_active
-    and fb.is_redeemed is null
-order by enroll.first_verified_date
-    
+select distinct au.email, fb.user_id, au.username, co.course_key, co.course_title, fb.booking_date, pc.program_title, pc.program_type
+from prod.core.fact_booking fb
+    inner join prod.core.dim_courses co on fb.course_key=co.course_key
+    inner join prod.lms_pii.auth_user au on fb.user_id=au.id
+    inner join prod.core.dim_program pc on pc.program_id = fb.program_id
+where fb.order_product_class = 'course-entitlement'
+    and not is_redeemed
+    and fb.program_id = 55
+order by 1,2,3,4,5,6
