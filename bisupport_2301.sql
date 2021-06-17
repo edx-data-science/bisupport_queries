@@ -1,46 +1,33 @@
-with enrollments as (
-  select user_id, dc.courserun_key, dcs.course_key, dcs.course_title
-      from "PROD"."CORE"."DIM_ENROLLMENTS" de
-      join "PROD"."CORE"."DIM_COURSERUNS" dc
-      on de.courserun_key = dc.courserun_key
-      join "PROD"."CORE"."DIM_COURSES" dcs
-      on dc.course_id=dcs.course_id
-      where is_active
-      and dc.partner_key='IBM'
-      and dcs.course_key  in (
-        'IBM+DA0101EN','IBM+DB0201EN','IBM+ML0101EN','IBM+DS0720EN','IBM+DV0101EN','IBM+AI0101EN','IBM+DA0130','IBM+DS0101EN','IBM+DS0105EN',
-        'IBM+DS0103EN','IBM+CAD101EN','IBM+DV0130','IBM+Cybfun.1.0','IBM+DL0110EN','IBM+DA0321','IBM+PY0101SP','IBM+CAD220EN','IBM+DL0120EN',
-        'IBM+DL0320EN','IBM+CB0103EN','IBM+CB0103EN','IBM+DB0201SP','IBM+AI102EN','IBM+DS0720SP','IBM+CC0201EN','IBM+DL0122EN','IBM+ML0210EN',
-        'IBM+DS0101SP','IBM+CAD201EN','IBM+Cybfun.3.0','IBM+DA0101SP','IBM+AI0101SP','IBM+CAD0321EN','IBM+Cybfun.4.0','IBM+DV0101SP',
-        'IBM+CB0106EN','IBM+CB0106EN','IBM+DB0100EN','IBM+DS0105SP','IBM+Cybfun.2.0','IBM+CV0101EN','IBM+DS0103SP','IBM+CB0103SP','IBM+DB0211EN',
-        'IBM+CAD250EN','IBM+AI0102SP','IBM+DB0101EN','IBM+PY0222EN','IBM+DB0303EN','IBM+PY0220EN','IBM+CV0101SP','IBM+CB0106SP','IBM+CC0103EN',
-        'IBM+PY0221EN','IBM+CC0150EN','IBM+CB0105EN','IBM+DB0151EN','IBM+EZZ1EG','IBM+EZZ2EG','IBM+EZZ3EG'
-)
-      and not is_privileged_or_internal_user
-  order by 1
-)
-, completers as (
-select 
-     distinct de.user_id, course_key, course_title
-from enrollments de
-left join
-  "PROD"."LMS_PII"."CERTIFICATES_GENERATEDCERTIFICATE" as cert 
-on cert.course_id = de.courserun_key and de.user_id=cert.user_id
-where status in ('downloadable', 'generating')
-  and date(MODIFIED_DATE) >=  dateadd('month', -12, current_date())
-order by user_id
+with user_courseruns as (
+    select distinct user_id,courserun_id 
+    from "PROD"."BUSINESS_INTELLIGENCE"."BI_COURSE_COMPLETION"
+    where courserun_id in (
+        7406,8182,8183,8185,8186,8187,8188,8807,9146,9175,9434,13445,13453,13456,13459,13462,13465,13468,13471,
+        13477,13478,15113,24200,24234,24235,24236,24237,24238,24503,24547,24548,24550,24551,24552,24553,26537,
+        26543,26605,26606,26607,26608,26609,26610,26611,26612,26614,26615,26617,26618,26619,26620,26622,27316,
+        27317,27387,27552,27554,27555,27556,27780,27781,27782,28237,28458,28459,28461,29097,29098,29099,29537,
+        30660,31693,31778,31781,31783,31785,31818,31819,31820,32594,32688,32742,32776,32926,32928,32929,32930,
+        32931,32932,32933,32934,32935,32936,32937,32939,32940,32941,32942,32943,32945,32962,32963,32996,33298,
+        33517,34188,34271,34400,34413
+    )
+    and passed_timestamp is not null
+    and date(passed_timestamp) >=  dateadd('month', -12, current_date())
+    order by user_id
 )
 
-select 
-    courses.user_id,
+select     
+    uc.user_id,
     users.email,
-    listagg(courses.course_key, ',') as course_key_list,
-    listagg(courses.course_title, ',') as course_title_list
-from completers courses
+    listagg(dcs.course_key, ',') as course_key_list,
+    listagg(dcs.course_title, ',') as course_title_list
+
+from user_courseruns uc
+join "PROD"."CORE"."DIM_COURSERUNS" dc
+      on uc.courserun_id = dc.courserun_id
+join "PROD"."CORE"."DIM_COURSES" dcs
+      on dc.course_id=dcs.course_id
 join prod.lms_pii.auth_user users
-on courses.user_id = users.id
-group by courses.user_id, users.email
+      on uc.user_id = users.id
+where  IS_SPANISH_LANGUAGE_CONTENT=0
+group by uc.user_id, users.email
 order by user_id
-
-
-
