@@ -8,12 +8,13 @@ select au.email
      , users.year_of_birth
      , users.account_created_at
      , users.is_active
-     , year(users.account_created_at) - users.year_of_birth as age
+     , year(users.account_created_at) - users.year_of_birth as age_at_time_of_account_creation
+     , year(getdate()) - users.year_of_birth as current_age
 from prod.core.dim_users    as users
 join prod.lms_pii.auth_user as au
      on users.user_id = au.id
 where users.year_of_birth is not null
-  and age < 13
+  and age_at_time_of_account_creation < 13
 
 -- under 13 users enrolled courses
 select distinct au.email
@@ -25,7 +26,8 @@ select distinct au.email
      , users.year_of_birth
      , users.account_created_at
      , users.is_active
-     , year(users.account_created_at) - users.year_of_birth as age
+     , year(users.account_created_at) - users.year_of_birth as age_at_time_of_account_creation
+     , year(getdate()) - users.year_of_birth as current_age
      , count(distinct de.courserun_key, ', ') over (
             partition by
                 au.email
@@ -36,7 +38,7 @@ join prod.lms_pii.auth_user as au
 join prod.core.dim_enrollments as de
      on de.user_id = users.user_id
 where users.year_of_birth is not null
-  and age < 13
+  and age_at_time_of_account_creation < 13
 order by au.email
 
 -- under 13 users completed courses
@@ -49,7 +51,8 @@ select distinct au.email
      , users.year_of_birth
      , users.account_created_at
      , users.is_active
-     , year(users.account_created_at) - users.year_of_birth as age
+     , year(users.account_created_at) - users.year_of_birth as age_at_time_of_account_creation
+     , year(getdate()) - users.year_of_birth as current_age
      , count(distinct de.courserun_key, ', ') over (
             partition by
                 au.email
@@ -62,7 +65,7 @@ join prod.core.dim_enrollments as de
 join prod.lms.grades_persistentcoursegrade as cc
      on cc.user_id = users.user_id and cc.course_id = de.courserun_key
 where users.year_of_birth is not null
-  and age < 13
+  and age_at_time_of_account_creation < 13
   and cc.passed_timestamp is not null
 order by au.email
 
@@ -77,13 +80,14 @@ select au.email
      , users.year_of_birth
      , users.account_created_at
      , users.is_active
-     , year(users.account_created_at) - users.year_of_birth as age
+     , year(users.account_created_at) - users.year_of_birth as age_at_time_of_account_creation
+     , year(getdate()) - users.year_of_birth as current_age
 from prod.core.dim_users    as users
 join prod.lms_pii.auth_user as au
      on users.user_id = au.id
 join prod.core.dim_country  as dc
      on users.country_code = dc.country_code
 where users.year_of_birth is not null
-  and age in (14, 15)
+  and age_at_time_of_account_creation in (14, 15)
   and dc.region = 'Europe'
 order by au.email
