@@ -333,3 +333,6 @@ from enrolls_raw er
     left join bookings_raw br on er.course_key = br.course_key
     left join prod.core.dim_courses dc on dc.course_key = er.course_key
 order by program_title,course_key
+
+select *
+from prod
