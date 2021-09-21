@@ -14,4 +14,4 @@ select count(au.user_id), year(first_enrollment_date)
 from active_users au
 join first_enrollment_date fe
 on au.user_id=fe.user_id
-group by 3
+group by 2
