@@ -38,16 +38,12 @@ with coupon_orders as (
     from prod.ecommerce.order_orderdiscount
     where voucher_code in
           (
-           'TSPU5UWLY5N556SE' -- for Write101x
-              , 'XMN7DMKPV3VWJU3R' -- for Employ101x
+           'UHWFRLRRI2KV5IPD' -- for Teams101x
+              , 'MFRDCUFITMCTTYKA' -- for Health101x
               , 'GIUWK4WGPCYBZ6HU' -- for ACE101x
+              , 'TSPU5UWLY5N556SE' -- for Write101x
+              , 'XMN7DMKPV3VWJU3R' -- for Employ101x
               , '7ZC7BZPAV73ULVIB' -- for World101x
-              , 'UHWFRLRRI2KV5IPD' -- for Teams101x
-              , 'AAKQROAVQMHR2WNQ' -- for Health101x
-              , 'SNBKE3USZM5DRQDL' -- for Health101x
-              , 'XALSJUAT2XNHADZB' -- for Health101x
-              , 'CTIGLRCDVRMBPJKE' -- for Health101x
-              , 'BNOW4D2JIAECHLHO' -- for Health101x
               )
 )
 select distinct
@@ -56,7 +52,7 @@ select distinct
      , d.courserun_title
      , a.voucher_code                              as coupon_code
      , to_date(e.date_created)                     as redemption_date
-     , substring(u.email, charindex('@', u.email)) as email_domain
+--     , substring(u.email, charindex('@', u.email)) as email_domain
 from coupon_orders                                                 a
      join      prod.ecommerce.order_line                           b
                on a.order_id = b.order_id
@@ -133,3 +129,8 @@ select *
 from prod.ecommerce.voucher_voucherapplication
     qualify 1 < count(*) over (partition by order_id)
 order by date_created desc
+
+
+select *
+from prod.ecommerce.order_orderdiscount
+where voucher_code in ('MFRDCUFITMCTTYKA')
