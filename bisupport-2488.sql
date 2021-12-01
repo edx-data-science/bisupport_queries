@@ -36,12 +36,19 @@ group by c.COURSERUN_KEY, a.voucher_code
 with coupon_orders as (
     select *
     from prod.ecommerce.order_orderdiscount
-    where voucher_code in (
-                           'TSPU5UWLY5N556SE',-- for Write101x
-                           'XMN7DMKPV3VWJU3R',-- for Employ101x
-                           'GIUWK4WGPCYBZ6HU',-- for ACE101x
-                           '7ZC7BZPAV73ULVIB'-- for World101x
-        )
+    where voucher_code in
+          (
+           'TSPU5UWLY5N556SE' -- for Write101x
+              , 'XMN7DMKPV3VWJU3R' -- for Employ101x
+              , 'GIUWK4WGPCYBZ6HU' -- for ACE101x
+              , '7ZC7BZPAV73ULVIB' -- for World101x
+              , 'UHWFRLRRI2KV5IPD' -- for Teams101x
+              , 'AAKQROAVQMHR2WNQ' -- for Health101x
+              , 'SNBKE3USZM5DRQDL' -- for Health101x
+              , 'XALSJUAT2XNHADZB' -- for Health101x
+              , 'CTIGLRCDVRMBPJKE' -- for Health101x
+              , 'BNOW4D2JIAECHLHO' -- for Health101x
+              )
 )
 select distinct
        c.user_id
@@ -97,7 +104,7 @@ with uqxcr   as (select * from prod.core.dim_courseruns where partner_key = 'UQx
 select cr.course_key
      , order_line_voucher_code
      , vv.name
-     , min(citoe.order_timestamp) ts
+     , min(citoe.order_timestamp) as ts
      , count(*)
 from citoe
      join      cr
@@ -107,16 +114,18 @@ from citoe
                on vv.id = citoe.order_line_voucher_id
 where vv.name ilike '%uq%'
    or vv.name ilike 'C4oC%'
-  or order_line_voucher_code in (
-                           'TSPU5UWLY5N556SE',-- for Write101x
-                           'XMN7DMKPV3VWJU3R',-- for Employ101x
-                           'GIUWK4WGPCYBZ6HU',-- for ACE101x
-                           '7ZC7BZPAV73ULVIB'-- for World101x
-        )
+   or order_line_voucher_code in (
+                                  'TSPU5UWLY5N556SE',-- for Write101x
+                                  'XMN7DMKPV3VWJU3R',-- for Employ101x
+                                  'GIUWK4WGPCYBZ6HU',-- for ACE101x
+                                  '7ZC7BZPAV73ULVIB'-- for World101x
+
+    )
 group by 1
        , 2
        , 3
-order by course_key, ts desc
+order by course_key
+       , ts desc
 
 -- is it possible some of these have multiple vouchers?
 -- that doesn't appear to have happened in recent memory or really very often
