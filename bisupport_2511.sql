@@ -18,23 +18,42 @@ where fau.is_active_app
 --
 -- Looking at these 3 actions specifically only after first time app load (post install).
 
-with events as (
-select mobile_event_dotted_name,anonymous_id,user_id
-from segment_events.segment_events_with_metadata
-where mobile_event_tracking_name is not null
-    and timestamp>='2022-01-01'
-    and mobile_event_dotted_name in ('edx.bi.app.discovery.courses_search','edx.bi.app.user.login','edx.bi.app.user.register.success')
-    )
-
-select suss.*, e.*
-from prod.core_event_sources.segment_user_session_summary suss
-     inner join events                                    e
-                on suss.anon_id = e.anonymous_id
-where suss.session_mobile_os in ('Android', 'iOS')
-  and suss.session_start_time >= '2022-01-01'
-  and session_user_id is null
-    qualify 1 = row_number() over (partition by coalesce(cast(e.user_id as varchar), suss.anon_id) order by suss.session_start_time)
-
+with events        as (
+    select mobile_event_dotted_name, anonymous_id, user_id
+    from segment_events.segment_events_with_metadata
+    where mobile_event_tracking_name is not null
+      and timestamp >= '2021-07-01'
+      and mobile_event_dotted_name in ('edx.bi.app.discovery.courses_search', 'edx.bi.app.user.login', 'edx.bi.app.user.register.success')
+)
+   , user_id_flags as (
+    select suss.session_mobile_os
+         , suss.session_user_id
+         , suss.anon_id
+         , case when e.mobile_event_dotted_name = 'edx.bi.app.discovery.courses_search' then session_user_id
+                else null end as searched
+         , case when e.mobile_event_dotted_name = 'edx.bi.app.user.login' then session_user_id
+                else null end as login
+         , case when e.mobile_event_dotted_name = 'edx.bi.app.user.register.success' then session_user_id
+                else null end as registered
+         , case when session_user_id is null and mobile_event_dotted_name = 'edx.bi.app.discovery.courses_search' then anon_id
+                else null end as searched_without_login
+    from prod.core_event_sources.segment_user_session_summary suss
+         left join events                                     e
+                   on suss.anon_id = e.anonymous_id
+    where suss.session_mobile_os in ('Android', 'iOS')
+      and suss.session_start_time >= '2021-07-01'
+      -- and session_user_id is null
+        qualify 1 = row_number() over (partition by coalesce(cast(e.user_id as varchar), suss.anon_id) order by suss.session_start_time)
+)
+select session_mobile_os
+    ,count(distinct session_user_id) as unique_user_count
+    ,count(distinct session_user_id||anon_id) as unique_user_or_session_count
+    ,count(distinct searched) as users_searching
+    ,count(distinct login) as users_logged_in
+    ,count(distinct registered) as users_registered
+    ,count(distinct searched_without_login) as users_searching_without_login
+from user_id_flags
+group by session_mobile_os
 /*
 {
   "anonymousId": "E2FC7815-C2B5-4A26-879E-C563DD5FAE65",
