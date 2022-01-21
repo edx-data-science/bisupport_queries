@@ -28,6 +28,8 @@ with active_mm as (
   )
 
 select distinct email,
+       first_name,
+       last_name,
        learner_id,
        country_label,
        last_enrollment
@@ -70,11 +72,74 @@ complete_mm_stu_plus as (
  )
 
 select distinct email,
+         first_name,
+         last_name,
          learner_id,
          country_label,
          last_enrollment
 from lms_pii.auth_user
 join complete_mm_stu_plus
 on id = learner_id
+where country_label is not null
+
+--third email list: students who unenrolled or asked for refund from mm in the last two years
+
+with active_mm as (
+  select distinct program_id as dim_program_id,
+         program_title as program_name
+  from dim_program
+  where program_type = 'MicroMasters'
+  and program_status = 'active'
+  ),
+
+unenrolled_mm_stu as (
+   select distinct dim_enrollments.user_id as learner_id,
+          courserun_key as dim_key,
+          enrollment_id as dim_enroll_id,
+          first_enrollment_date as enrollment,
+          program_name
+   from dim_enrollments
+   join active_mm
+   on program_id_at_first_enrollment = dim_program_id
+   where is_active = 'FALSE'
+   and first_enrollment_date > '2020-01-01'  --within the last two years rounded to jan 1--
+   ),
+
+refund_added_stu as (
+  select distinct fact_booking.user_id,
+         learner_id,
+         enrollment,
+         program_name
+  from unenrolled_mm_stu
+  full join fact_booking
+  on learner_id = fact_booking.user_id
+  and dim_key = courserun_key
+  and dim_enroll_id = enrollment_id
+  where transaction_type = 'refund'
+),
+
+refund_added_stu_plus as (
+  select distinct learner_id,
+         country_label,
+         enrollment,
+         program_name
+   from dim_users
+   join refund_added_stu
+   on dim_users.user_id = learner_id
+  )
+
+select distinct email,
+         first_name,
+         last_name,
+         learner_id,
+         country_label,
+         max(enrollment) as last_enrollment,
+         program_name
+from lms_pii.auth_user
+join refund_added_stu_plus
+on id = learner_id
+where country_label is not null
+group by learner_id, country_label, program_name, email, first_name, last_name
+order by email
 
  
