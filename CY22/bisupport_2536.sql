@@ -11,6 +11,12 @@ with pre_covid as (
        metric_date,
        course_key,
        partner_key
+  select coalesce(verified_count,0) as pre_covid_verified
+       ,sum(enrollment_count) as pre_covid_enrolled
+       ,metric_date as pre_covid_date
+       ,course_key as pre_covid_course
+       ,partner_key as pre_covid_partner
+       ,courserun_title as pre_covid_title
 
 from tableau_fact_b2c_funnel
 
@@ -29,12 +35,15 @@ from pre_covid
 --vtr increased to ~1.5% (0.0147)
 =======
   and metric_date between '2019-05-01' and '2019-11-15' --dates adjusted to larger window to ensure enrollment sample size matched credly test sample size
+  and metric_date between '2019-08-01' and '2019-10-31' --three-month pre-covid window
   and course_key not in ('IBM+BD0225EN','IBM+BD0231EN','IBM+CD0116EN','IBM+CD0351EN','IBM+DA0151EN','IBM+DB0111EN',
                         'IBM+DB0151EN','IBM+DB0231EN','IBM+DB0250EN','IBM+DB260EN','IBM+DB321EN','IBM+DV0151EN','IBM+ESME36G',
                         'IBM+ESX9EG','IBM+EZ52EG','IBM+EZP05EG','IBM+IBMICECPP01','IBM+IBMICECPP02','IBM+IBMICECPP03','IBM+IBMPSRE1',
                         'IBM+IBMPSRE2','IBM+IBMPSRE3','IBM+LX0117EN','IBM+PYTEST','IBM+QZE32DG','IBM+QZE33DG','IBM+RP0101EN','IBM+RP0203EN',
                         'IBM+RP0321EN','IBM+ST0151EN','IBM+Test_101')
 group by metric_date, course_key, partner_key, verified_count
+                        'IBM+RP0321EN','IBM+ST0151EN','IBM+Test_101','IBM+CB0105EN','IBM+DL0122EN') --removed courses without credly badges
+group by pre_covid_date, pre_covid_course, pre_covid_partner, pre_covid_verified, pre_covid_title
   )
 
 select
@@ -54,6 +63,13 @@ with post_credly_fall_21 as (
        metric_date,
        course_key,
        partner_key
+,post_credly_fall_21 as (
+  select coalesce(verified_count,0) as post_credly_fall_verified,
+       sum(enrollment_count) as post_credly_fall_enrolled
+       ,metric_date as post_credly_fall_date
+       ,course_key as post_credly_fall_course
+       ,partner_key as post_credly_fall_partner
+       ,courserun_title as post_credly_fall_title
 
 from tableau_fact_b2c_funnel
 
@@ -78,6 +94,8 @@ from post_credly_fall_21
                         'IBM+IBMPSRE2','IBM+IBMPSRE3','IBM+LX0117EN','IBM+PYTEST','IBM+QZE32DG','IBM+QZE33DG','IBM+RP0101EN','IBM+RP0203EN',
                         'IBM+RP0321EN','IBM+ST0151EN','IBM+Test_101')
 group by metric_date, course_key, partner_key, verified_count
+                        'IBM+RP0321EN','IBM+ST0151EN','IBM+Test_101','IBM+DL0122EN')
+group by post_credly_fall_date, post_credly_fall_course, post_credly_fall_partner, post_credly_fall_verified, post_credly_fall_title
   )
 
 select
@@ -97,6 +115,13 @@ with post_credly_all as (
        metric_date,
        course_key,
        partner_key
+,post_credly_all as (
+  select coalesce(verified_count,0) as post_credly_all_verified
+       ,sum(enrollment_count) as post_credly_all_enrolled
+       ,metric_date as post_credly_all_date
+       ,course_key as post_credly_all_course
+       ,partner_key as post_credly_all_partner
+       ,courserun_title as post_credly_all_title
 
 from tableau_fact_b2c_funnel
 
@@ -114,12 +139,15 @@ from post_credly_all
 --checked vtr all-time for edx, slightly higher but similar to pre-credly
 --just about 1%(0.0095)
 =======
+  and metric_date between '2021-06-17' and '2022-01-20' --all-time post-credly launch
   and course_key not in ('IBM+BD0225EN','IBM+BD0231EN','IBM+CD0116EN','IBM+CD0351EN','IBM+DA0151EN','IBM+DB0111EN',
                         'IBM+DB0151EN','IBM+DB0231EN','IBM+DB0250EN','IBM+DB260EN','IBM+DB321EN','IBM+DV0151EN','IBM+ESME36G',
                         'IBM+ESX9EG','IBM+EZ52EG','IBM+EZP05EG','IBM+IBMICECPP01','IBM+IBMICECPP02','IBM+IBMICECPP03','IBM+IBMPSRE1',
                         'IBM+IBMPSRE2','IBM+IBMPSRE3','IBM+LX0117EN','IBM+PYTEST','IBM+QZE32DG','IBM+QZE33DG','IBM+RP0101EN','IBM+RP0203EN',
                         'IBM+RP0321EN','IBM+ST0151EN','IBM+Test_101')
 group by metric_date, course_key, partner_key, verified_count
+                        'IBM+RP0321EN','IBM+ST0151EN','IBM+Test_101','IBM+DL0122EN')
+group by post_credly_all_date, post_credly_all_course, post_credly_all_partner, post_credly_all_verified, post_credly_all_title
   )
 
 select
@@ -161,9 +189,26 @@ sum(enrolled) as edx_enrolled,
 sum(verified) as edx_verified,
 sum(verified)/sum(enrolled) as edx_vtr
 from edx_all
+pre_covid_course as course_key
+,pre_covid_title as course_title
+,sum(pre_covid_verified)/ sum(pre_covid_enrolled) as pre_covid_ibm_vtr
+,sum(post_credly_fall_verified)/ sum(post_credly_fall_enrolled) as post_credly_ibm_fall_vtr
+,sum(post_credly_all_verified)/ sum(post_credly_all_enrolled) as post_credly_ibm_all_vtr
+,sum(pre_covid_enrolled) as pre_covid_ibm_enrolled
+,sum(pre_covid_verified) as pre_covid_ibm_verified
+,sum(post_credly_fall_enrolled) as post_credly_ibm_fall_enrolled
+,sum(post_credly_fall_verified) as post_credly_ibm_fall_verified
+,sum(post_credly_all_enrolled) as post_credly_ibm_all_enrolled
+,sum(post_credly_all_verified) as post_credly_ibm_all_verified
 
 --the edx vtr when run for dates matching the ibm test are 0.013 (aug-oct 2019), 0.0149 (aug-oct 2021), 0.0147 (june 17-jan 20)
 --for pre-covid/pre-credly ibm (aug-oct 2019), the vtr is 0.009, for post-credly (aug-oct 2021) vtr is 0.0143,
 --for all post-credly (june 17-jan 20) vtr is 0.0148
 --conclusion: pre-credly, ibm courses had lower vtr than the general edx catalogue. credly did increase vtr by about 50% (from ~1% to ~1.5%)
 >>>>>>> Stashed changes
+from pre_covid
+join post_credly_fall_21
+on pre_covid_course = post_credly_fall_course
+join post_credly_all
+on post_credly_fall_course = post_credly_all_course
+group by course_key, course_title
