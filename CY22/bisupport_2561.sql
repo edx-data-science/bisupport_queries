@@ -1,8 +1,5 @@
 --
 
-select *
-from prod.core._tax_rate
-
 create or replace temporary table us_state_tax_rates
 (
     country_code       varchar(2),
@@ -210,4 +207,5 @@ create or replace temporary table direct_purchase_tax_report as
     )
 ;
 
-select * from direct_purchase_tax_report
+create table bis2561_direct_purchase_tax_report as (select * from direct_purchase_tax_report);
+
