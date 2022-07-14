@@ -28,14 +28,24 @@ with registered_enterprise_users as
             )
     )
 --select count(*) from registered_b2c_users  1668
-/*select enterprise.enterprise_user_id is not null                                                               as is_enterprise_user
-     , ifnull(ee.is_enterprise_transaction and enterprise.enterprise_user_id is not null, false)               as is_enterprise_transaction
-     , ifnull(first_verified_date is not null, false)
+/*FOR PART 1: use below two lines and adjust group by statement
+-- enterprise.enterprise_user_id is not null                                                               as is_enterprise_user
+-- , ifnull(ee.is_enterprise_transaction and enterprise.enterprise_user_id is not null, false)               as is_enterprise_transaction
+     --, ifnull(first_verified_date is not null, false)*/
+select coalesce(sub.name, ts.name)                                                                             as skill
      , count(distinct enroll.user_id)                                                                          as enrolled_users
      , count(distinct enroll.enrollment_id)                                                                    as enrollments
      , count(distinct iff(completion.passed_timestamp is not null, enroll.enrollment_id, null))                as completions
      , count(distinct iff(enroll.first_downloadable_certificate_date is not null, enroll.enrollment_id, null)) as certifications
 from dim_enrollments                                           enroll
+     left join prod.core.dim_courseruns                        dcr
+               on dcr.courserun_key = enroll.courserun_key
+     left join prod.discovery.taxonomy_courseskills            cs
+               on cs.course_key = dcr.course_key
+     left join prod.discovery.taxonomy_skill                   ts
+               on cs.skill_id = ts.id
+     left join prod.discovery.taxonomy_skillsubcategory        sub
+               on sub.id = ts.subcategory_id
      left join prod.enterprise.ent_base_enterprise_enrollment  ee
                on ee.lms_enrollment_id = enroll.enrollment_id
      left join prod.business_intelligence.bi_course_completion completion
@@ -45,9 +55,19 @@ from dim_enrollments                                           enroll
                on enterprise.lms_user_id = enroll.user_id
      left join registered_b2c_users as                         b2c
                on b2c.user_id = enroll.user_id
-where b2c.user_id is not null
-   or enterprise.lms_user_id is not null
+where (b2c.user_id is not null
+    or enterprise.lms_user_id is not null)
+  and coalesce(sub.name, ts.name) is not null
 group by 1
-       , 2
-       , 3*/
-select  from prod.core.dim_enrollments de
+order by 2 desc
+
+select *
+from prod.discovery.taxonomy_skillsubcategory
+select *
+from prod.discovery.taxonomy_courseskills
+select *
+from prod.core.fact_course_skill
+
+select *
+from prod.discovery.taxonomy_skillcategory
+where id = 17
